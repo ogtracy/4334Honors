@@ -1,0 +1,25 @@
+#BlueJ class context
+comment0.params=
+comment0.target=Cluster()
+comment0.text=\r\n\ Constructor\ for\ objects\ of\ class\ Cluster\r\n
+comment1.params=args
+comment1.target=void\ main(java.lang.String[])
+comment10.params=index
+comment10.target=Rating\ calculateRMPCentroid(int)
+comment2.params=
+comment2.target=void\ parseRMPFiles()
+comment3.params=
+comment3.target=void\ parseSFSFiles()
+comment4.params=
+comment4.target=void\ clusterSFSandRMP()
+comment5.params=
+comment5.target=void\ clusterSFS()
+comment6.params=
+comment6.target=void\ clusterRMP()
+comment7.params=centroids
+comment7.target=java.util.ArrayList\ computeRMPChange(java.util.ArrayList)
+comment8.params=centroids
+comment8.target=java.util.ArrayList\ computeChange(java.util.ArrayList)
+comment9.params=index
+comment9.target=Point\ calculateCentroid(int)
+numComments=11
