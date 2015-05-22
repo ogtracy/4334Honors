@@ -7,23 +7,20 @@
  */
 import org.jsoup.*;
 import org.jsoup.helper.*;
-import java.io.File;
-import java.io.BufferedReader;
+import java.io.*;
 import java.lang.Exception;
-import java.io.IOException;
 import java.io.FileNotFoundException;
-import java.util.Scanner;
+import java.util.*;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import org.jsoup.nodes.Element;
 import java.util.regex.MatchResult;
-import java.util.ArrayList;
-import java.util.Iterator;
+
 public class Cluster
 {
     private ArrayList<Professor> professors;
+    private HashMap<String, Professor>professorsMap;
     private ArrayList<Rating> ratings;
-    private ArrayList<Rating> profRatings;
     private ArrayList<Professor> cluster1;
     private ArrayList<Professor> cluster2;
     private ArrayList<Professor> cluster3;
@@ -35,14 +32,17 @@ public class Cluster
     private ArrayList<Rating> RMPCluster4;
     private ArrayList<Rating> RMPCluster5;
     
+    private ArrayList<Point> SFSCentroids;
+    private ArrayList<Rating> RMPCentroids;
+
     /**
      * Constructor for objects of class Cluster
      */
     public Cluster()
     {
         professors = new ArrayList<Professor>();
+        professorsMap = new HashMap<String, Professor>();
         ratings = new ArrayList<Rating>();
-        profRatings = new ArrayList<Rating>();
         cluster1 = new ArrayList<Professor>();
         cluster2 = new ArrayList<Professor>();
         cluster3 = new ArrayList<Professor>();
@@ -53,6 +53,9 @@ public class Cluster
         RMPCluster3 = new ArrayList<Rating>();
         RMPCluster4 = new ArrayList<Rating>();
         RMPCluster5 = new ArrayList<Rating>();
+        
+        ArrayList<Point> SFSCentroids = new ArrayList<Point>();
+        ArrayList<Rating> RMPCentroids = new ArrayList<Rating>();
     }
 
     public static void main(String [] args){
@@ -61,7 +64,8 @@ public class Cluster
         obj.parseSFSFiles();
         obj.clusterSFS();
         obj.clusterRMP();
-        obj.clusterSFSandRMP();
+        //obj.writeResults();
+        obj.compare();
     }
 
     //this method is not used 
@@ -74,6 +78,8 @@ public class Cluster
         try{
             for (File file : files) {
                 String input = new Scanner(file).useDelimiter("\\A").next();
+                String name = file.getName();
+                String[] nameItems = name.split("at");
                 Document doc = Jsoup.parse(file, "UTF-8", "http://example.com/");
 
                 Elements classes = doc.getElementsByClass("rating-breakdown");
@@ -108,6 +114,7 @@ public class Cluster
                     } else {
                         rating.setEasiness (-1);
                     }
+                    rating.setName(nameItems[0]);
                     ratings.add(rating);
                     s.close(); 
                 }
@@ -127,83 +134,105 @@ public class Cluster
     }
 
     void parseSFSFiles(){
-
         BufferedReader br = null;
 
-        File f = new File("SFS"); 
+        File f = new File("SFStext"); 
         File[] files = f.listFiles();
+        String line = null;
         try{
             for (File file : files) {
-                Document doc = Jsoup.parse(file, "UTF-8", "http://example.com/");
-                Element table = doc.select("table").get(1); 
-                Elements rows = table.select("tr");
-
-                for (int i = 2; i < rows.size()-2; i+=2) { 
-                    Element row = rows.get(i);
-                    String text = row.text();
-                    Elements cols = row.select("td");
-                    Professor p = new Professor();
-                    professors.add(p);
-                    for (int x =0; x <cols.size(); x++){
-                        Element col = cols.get(x);
-                        String value = col.text();
-                        float fValue =-1;
-
-                        if (x >1){
-                            try
-                            {
-                                fValue = Float.valueOf(value.trim()).floatValue();
-                            }
-                            catch (NumberFormatException nfe)
-                            {
-                                System.out.println("NumberFormatException: " + nfe.getMessage());
-                            }
-                        }
-
-                        switch (x){
-                            case 0:
-                            p.setName(value);
-                            break;
-
-                            case 1:
-                            //do nothing. this is a header
-                            break;
-
-                            case 2:
-                            p.setCDE(fValue);
-                            break;
-
-                            case 3:
-                            p.setGTM(fValue);
-                            break;
-
-                            case 4:
-                            p.setSP(fValue);
-                            break;
-
-                            case 5:
-                            p.setWP(fValue);
-                            break;
-
-                            case 6:
-                            p.setAvailable(fValue);
-                            break;
-
-                            case 7:
-                            p.setRecommended(fValue);
-                            break;
-                        }
-
+                br = new BufferedReader(new FileReader(file));
+                line = br.readLine();
+                while ((line = br.readLine())!= null){ 
+                    String[] data = line.split("\t");
+                    String name ="";
+                    double GTM;
+                    double CDE;
+                    double available;
+                    double WP;
+                    double SP;
+                    int GTMcount=0;
+                    int CDEcount=0;
+                    int WPcount=0;
+                    int SPcount=0;
+                    int availableCount=0;
+                    if (data.length <5){
+                        continue;
                     }
-                }
-                break;
-            }
-            
-            Iterator<Professor> itr = professors.iterator();
-            while(itr.hasNext()) {
-                Professor r = itr.next();
-                if (!r.isValid()){
-                    itr.remove();
+                    String first = data[0].toLowerCase().trim();
+                    String second = data[1].toLowerCase().trim();
+                    String[] nameArray =first.split(":");
+                    if (nameArray.length>1 && !second.equals("mean")){
+                        if (!second.equals("n")){
+                            System.out.println("we have a problem");
+                        } else {
+                            try{
+                                CDEcount = Integer.parseInt(data[2].trim());
+                                GTMcount = Integer.parseInt(data[3].trim());
+                                SPcount = Integer.parseInt(data[4].trim());
+                                WPcount = Integer.parseInt(data[5].trim());
+                                availableCount = Integer.parseInt(data[6].trim());
+                            } catch (Exception e){
+                                continue;
+                            }
+                        }
+                        //System.out.println(nameArray[0]);
+                        line = br.readLine();
+                        data = line.split("\t");
+                    } else if (nameArray.length>1 && second.equals("mean")){
+                        String nextLine;
+                        String[] nextSplit;
+                        do {
+                            nextLine = br.readLine();
+                            nextSplit = nextLine.split("\t");
+                        } while (nextSplit.length < 5);
+                        String nextSecond = nextSplit[1].toLowerCase().trim();
+                        if(!nextSecond.equals("n")){
+                            System.out.println("we have a problem");
+                        } else {
+                            try{
+                                CDEcount = Integer.parseInt(nextSplit[2].trim());
+                                GTMcount = Integer.parseInt(nextSplit[3].trim());
+                                SPcount = Integer.parseInt(nextSplit[4].trim());
+                                WPcount = Integer.parseInt(nextSplit[5].trim());
+                                availableCount = Integer.parseInt(nextSplit[6].trim());
+                            } catch (Exception e){
+                                continue;
+                            }
+                        }
+
+                        // System.out.println(nameArray[0]);
+                    } else {
+                        continue;
+                    }
+
+                    name = nameArray[0];
+                    try{
+                        CDE = Double.parseDouble(data[2].trim());
+                        GTM = Double.parseDouble(data[3].trim());
+                        SP = Double.parseDouble(data[4].trim());
+                        WP = Double.parseDouble(data[5].trim());
+                        available = Double.parseDouble(data[6].trim());
+                    } catch (NumberFormatException e){
+                        continue;
+                    } catch (ArrayIndexOutOfBoundsException e){
+                        continue;
+                    }
+                    Professor p = new Professor(name, CDE, GTM, SP, WP, available);
+                    p.setCDECount(CDEcount);
+                    p.setGTMCount(GTMcount);
+                    p.setSPCount(SPcount);
+                    p.setWPCount(WPcount);
+                    p.setAvailableCount(availableCount);
+                    //System.out.println(p.getPoint().toString());
+                    if (professorsMap.containsKey(name)){
+                        Professor prof = professorsMap.get(name);
+                        prof.add(p);
+                    } else {
+                        professors.add(p);
+                        professorsMap.put(name, p);
+                    }
+                    
                 }
             }
         }
@@ -213,102 +242,15 @@ public class Cluster
             System.out.println(e.getMessage());
         }
     }
-    
-    private void clusterSFSandRMP(){
-        for (Rating rat : ratings){
-            profRatings.add(rat);
-        }
-        for (Professor prof : professors){
-            profRatings.add(prof.getRating());
-        }
-        ArrayList<Rating> centroids = new ArrayList<Rating>();
-        centroids.add(profRatings.get(0));
-        centroids.add(profRatings.get(1));
-        centroids.add(profRatings.get(2));
-        centroids.add(profRatings.get(3));
-        centroids.add(profRatings.get(4));
-        boolean change = false;
 
-        do
-        {
-            RMPCluster1 = new ArrayList<Rating>();
-            RMPCluster2 = new ArrayList<Rating>();
-            RMPCluster3 = new ArrayList<Rating>();
-            RMPCluster4 = new ArrayList<Rating>();
-            RMPCluster5 = new ArrayList<Rating>();
-            change = false;
-            
-            for (int x =0; x<profRatings.size(); x++){
-                Rating rating = profRatings.get(x);
-                Rating nearest = null;
-                Rating r = centroids.get(0);
-                double leastDistance = rating.findDistance(r);
-                nearest = centroids.get(0);
-                for (int y =1; y< centroids.size(); y++){
-                    r = centroids.get(y);
-                    double distance = rating.findDistance(r);
-                    if (distance < leastDistance){
-                        leastDistance = distance;
-                        nearest = r;
-                    }
-                }
-
-                if (nearest == centroids.get(0)){
-                    RMPCluster1.add(rating);
-                } else if (nearest == centroids.get(1)){
-                    RMPCluster2.add(rating);
-                } else if (nearest == centroids.get(2)){
-                    RMPCluster3.add(rating);
-                } else if (nearest == centroids.get(3)){
-                    RMPCluster4.add(rating);
-                } else {
-                    RMPCluster5.add(rating);
-                }
-            }
-            ArrayList<Rating> newCentroids = computeRMPChange(centroids);
-            if (newCentroids != null){
-                change = true;
-                centroids = newCentroids;
-            } else {
-                System.out.println("The following are the results for the combined RMP and SFS clustering");
-                System.out.println("The first cluster is as follows:");
-                System.out.println(centroids.get(0));
-                System.out.println("There are " + RMPCluster1.size() +" professors in this cluster");
-                System.out.println();
-                
-                System.out.println("The second cluster is as follows:");
-                System.out.println(centroids.get(1));
-                System.out.println("There are " + RMPCluster2.size() +" professors in this cluster");
-                System.out.println();
-                
-                System.out.println("The third cluster is as follows:");
-                System.out.println(centroids.get(2));
-                System.out.println("There are " + RMPCluster3.size() +" professors in this cluster");
-                System.out.println();
-                
-                System.out.println("The fourth cluster is as follows:");
-                System.out.println(centroids.get(3));
-                System.out.println("There are " + RMPCluster4.size() +" professors in this cluster");
-                System.out.println();
-                
-                System.out.println("The fifth cluster is as follows:");
-                System.out.println(centroids.get(4));
-                System.out.println("There are " + RMPCluster5.size() +" professors in this cluster");
-                System.out.println();
-            }
-
-        }while(change);
-
-    }
-    
     private void clusterSFS(){
         //select initial centroids
-        ArrayList<Point> centroids = new ArrayList<Point>();
-        centroids.add(professors.get(0).getPoint());
-        centroids.add(professors.get(1).getPoint());
-        centroids.add(professors.get(2).getPoint());
-        centroids.add(professors.get(3).getPoint());
-        centroids.add(professors.get(4).getPoint());
+        SFSCentroids = new ArrayList<Point>();
+        SFSCentroids.add(professors.get(5).getPoint());
+        SFSCentroids.add(professors.get(6).getPoint());
+        SFSCentroids.add(professors.get(7).getPoint());
+        SFSCentroids.add(professors.get(8).getPoint());
+        SFSCentroids.add(professors.get(9).getPoint());
         boolean change = false;
 
         do
@@ -322,11 +264,11 @@ public class Cluster
             for (int x =0; x<professors.size(); x++){
                 Professor prof = professors.get(x);
                 Point nearest = null;
-                Point p = centroids.get(0);
+                Point p = SFSCentroids.get(0);
                 double leastDistance = prof.findDistance(p);
-                nearest = centroids.get(0);
-                for (int y =1; y< centroids.size(); y++){
-                    p = centroids.get(y);
+                nearest = SFSCentroids.get(0);
+                for (int y =1; y< SFSCentroids.size(); y++){
+                    p = SFSCentroids.get(y);
                     double distance = prof.findDistance(p);
                     if (distance < leastDistance){
                         leastDistance = distance;
@@ -334,46 +276,46 @@ public class Cluster
                     }
                 }
 
-                if (nearest == centroids.get(0)){
+                if (nearest == SFSCentroids.get(0)){
                     cluster1.add(prof);
-                } else if (nearest == centroids.get(1)){
+                } else if (nearest == SFSCentroids.get(1)){
                     cluster2.add(prof);
-                } else if (nearest == centroids.get(2)){
+                } else if (nearest == SFSCentroids.get(2)){
                     cluster3.add(prof);
-                } else if (nearest == centroids.get(3)){
+                } else if (nearest == SFSCentroids.get(3)){
                     cluster4.add(prof);
                 } else {
                     cluster5.add(prof);
                 }
             }
-            ArrayList<Point> newCentroids = computeChange(centroids);
+            ArrayList<Point> newCentroids = computeChange(SFSCentroids);
             if (newCentroids != null){
                 change = true;
-                centroids = newCentroids;
+                SFSCentroids = newCentroids;
             } else {
                 System.out.println("The following are the results for the SFS clustering");
                 System.out.println("The first cluster is as follows:");
-                System.out.println(centroids.get(0));
+                System.out.println(SFSCentroids.get(0));
                 System.out.println("There are " + cluster1.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The second cluster is as follows:");
-                System.out.println(centroids.get(1));
+                System.out.println(SFSCentroids.get(1));
                 System.out.println("There are " + cluster2.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The third cluster is as follows:");
-                System.out.println(centroids.get(2));
+                System.out.println(SFSCentroids.get(2));
                 System.out.println("There are " + cluster3.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The fourth cluster is as follows:");
-                System.out.println(centroids.get(3));
+                System.out.println(SFSCentroids.get(3));
                 System.out.println("There are " + cluster4.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The fifth cluster is as follows:");
-                System.out.println(centroids.get(4));
+                System.out.println(SFSCentroids.get(4));
                 System.out.println("There are " + cluster5.size() +" professors in this cluster");
                 System.out.println();
             }
@@ -381,13 +323,14 @@ public class Cluster
         }while(change);
 
     }
+
     private void clusterRMP(){
-        ArrayList<Rating> centroids = new ArrayList<Rating>();
-        centroids.add(ratings.get(0));
-        centroids.add(ratings.get(1));
-        centroids.add(ratings.get(2));
-        centroids.add(ratings.get(3));
-        centroids.add(ratings.get(4));
+        RMPCentroids = new ArrayList<Rating>();
+        RMPCentroids.add(ratings.get(0));
+        RMPCentroids.add(ratings.get(1));
+        RMPCentroids.add(ratings.get(2));
+        RMPCentroids.add(ratings.get(3));
+        RMPCentroids.add(ratings.get(4));
         boolean change = false;
 
         do
@@ -398,15 +341,15 @@ public class Cluster
             RMPCluster4 = new ArrayList<Rating>();
             RMPCluster5 = new ArrayList<Rating>();
             change = false;
-            
+
             for (int x =0; x<ratings.size(); x++){
                 Rating rating = ratings.get(x);
                 Rating nearest = null;
-                Rating r = centroids.get(0);
+                Rating r = RMPCentroids.get(0);
                 double leastDistance = rating.findDistance(r);
-                nearest = centroids.get(0);
-                for (int y =1; y< centroids.size(); y++){
-                    r = centroids.get(y);
+                nearest = RMPCentroids.get(0);
+                for (int y =1; y< RMPCentroids.size(); y++){
+                    r = RMPCentroids.get(y);
                     double distance = rating.findDistance(r);
                     if (distance < leastDistance){
                         leastDistance = distance;
@@ -414,46 +357,46 @@ public class Cluster
                     }
                 }
 
-                if (nearest == centroids.get(0)){
+                if (nearest == RMPCentroids.get(0)){
                     RMPCluster1.add(rating);
-                } else if (nearest == centroids.get(1)){
+                } else if (nearest == RMPCentroids.get(1)){
                     RMPCluster2.add(rating);
-                } else if (nearest == centroids.get(2)){
+                } else if (nearest == RMPCentroids.get(2)){
                     RMPCluster3.add(rating);
-                } else if (nearest == centroids.get(3)){
+                } else if (nearest == RMPCentroids.get(3)){
                     RMPCluster4.add(rating);
                 } else {
                     RMPCluster5.add(rating);
                 }
             }
-            ArrayList<Rating> newCentroids = computeRMPChange(centroids);
+            ArrayList<Rating> newCentroids = computeRMPChange(RMPCentroids);
             if (newCentroids != null){
                 change = true;
-                centroids = newCentroids;
+                RMPCentroids = newCentroids;
             } else {
                 System.out.println("The following is the results for the RMP clustering");
                 System.out.println("The first cluster is as follows:");
-                System.out.println(centroids.get(0));
+                System.out.println(RMPCentroids.get(0));
                 System.out.println("There are " + RMPCluster1.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The second cluster is as follows:");
-                System.out.println(centroids.get(1));
+                System.out.println(RMPCentroids.get(1));
                 System.out.println("There are " + RMPCluster2.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The third cluster is as follows:");
-                System.out.println(centroids.get(2));
+                System.out.println(RMPCentroids.get(2));
                 System.out.println("There are " + RMPCluster3.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The fourth cluster is as follows:");
-                System.out.println(centroids.get(3));
+                System.out.println(RMPCentroids.get(3));
                 System.out.println("There are " + RMPCluster4.size() +" professors in this cluster");
                 System.out.println();
-                
+
                 System.out.println("The fifth cluster is as follows:");
-                System.out.println(centroids.get(4));
+                System.out.println(RMPCentroids.get(4));
                 System.out.println("There are " + RMPCluster5.size() +" professors in this cluster");
                 System.out.println();
             }
@@ -461,7 +404,7 @@ public class Cluster
         }while(change);
 
     }   
-    
+
     private ArrayList<Rating> computeRMPChange(ArrayList<Rating> centroids){
         boolean change = false;
         ArrayList<Rating> newCentroids = new ArrayList<Rating>();
@@ -520,7 +463,6 @@ public class Cluster
         double sumC =0;
         double sumD =0;
         double sumE =0;
-        double sumF =0;
         switch (index){
             case 0:
             profs = cluster1;
@@ -541,12 +483,11 @@ public class Cluster
 
         for (int y=0; y <profs.size(); y++){
             Professor p = profs.get(y);
-            sumA = sumA+ p.getCDE();
+            sumA = sumA + p.getCDE();
             sumB = sumB + p.getGTM();
             sumC = sumC + p.getSP();
             sumD = sumD + p.getWP();
             sumE = sumE + p.getAvailable();
-            sumF = sumF + p.getRecommended();
         }
         if (profs.size() >0){
             double newA = sumA/profs.size(); 
@@ -554,14 +495,13 @@ public class Cluster
             double newC = sumC/profs.size(); 
             double newD = sumD/profs.size(); 
             double newE = sumE/profs.size(); 
-            double newF = sumF/profs.size(); 
-            newPoint = new Point(newA, newB, newC, newD, newE, newF);
+            newPoint = new Point(newA, newB, newC, newD, newE);
         } else {
             newPoint = null;
         }
         return newPoint;
     }
-    
+
     private Rating calculateRMPCentroid(int index){
         Rating newRating = null;
         ArrayList<Rating> rs = null;
@@ -604,10 +544,328 @@ public class Cluster
             newRating.setClarity(newC);
             double newD = sumD/rs.size(); 
             newRating.setEasiness(newD);
-            
+
         } else {
             newRating = null;
         }
         return newRating;
     }
+    
+    private void writeResults(){
+        String SFSFile = "SFSResults.csv";
+        String RMPFile = "RMPResults.csv";
+        FileWriter fileWriter1 = null;
+        FileWriter fileWriter2 = null;
+        
+        try{
+            fileWriter1 = new FileWriter(SFSFile);
+            fileWriter1.append("CDE,GTM,SP,WP,available\n");
+            for (Professor p: professors){
+                String toWrite =p.getCDE() +","+ p.getGTM()+","+ p.getSP()+","+ p.getWP()+"," + p.getAvailable()+"\n";
+                fileWriter1.append(toWrite);
+            }
+            
+            fileWriter2 = new FileWriter(RMPFile);
+            fileWriter2.append("Quality,Helpfulness,Clarity,Easiness\n");
+            int count=1;
+            for (Rating r: ratings){
+                String toWrite = r.getQuality()+","+r.getHelpfulness()+","+r.getClarity()+","+r.getEasiness()+"\n";
+                fileWriter2.append(toWrite);
+                count++;
+            }
+            
+        } catch (FileNotFoundException e){
+            System.out.println("Error" + e.getMessage());
+        } catch (IOException e){
+            System.out.println("Error" + e.getMessage());
+        } finally {
+            try {
+                fileWriter1.flush();
+                fileWriter1.close();
+                fileWriter2.flush();
+                fileWriter2.close();
+            } catch (IOException e) {
+                System.out.println("Error while flushing/closing fileWriter !!!");
+                e.printStackTrace();
+            }
+
+        }
+    }
+    
+    private ArrayList<Point> arrangeSFSCentroids(){
+        double maxSize =0;
+        Point largestSFS = null;
+        Point secondLargestSFS = null;
+        Point third = null;
+        Point fourth = null;
+        Point fifth = null;
+        
+        
+        //get largest centroids
+        ArrayList<Point> centroids = SFSCentroids;
+        for (Point p: centroids){
+            double size = p.getLength();
+            if (size > maxSize){
+                maxSize = size;
+                largestSFS = p;
+            }
+        }
+        maxSize =0;
+        for (Point p: centroids){
+            double size = p.getLength();
+            if( size <largestSFS.getLength() && size > maxSize){
+                maxSize = size;
+                secondLargestSFS = p;
+            }
+        }
+        maxSize =0;
+        for (Point p: centroids){
+            double size = p.getLength();
+            if (size < secondLargestSFS.getLength() && size > maxSize){
+                maxSize = size;
+                third = p;
+            }
+        }
+        maxSize =0;
+        for (Point p: centroids){
+            double size = p.getLength();
+            if( size <third.getLength() && size > maxSize){
+                maxSize = size;
+                fourth = p;
+            }
+        }
+        maxSize =0;
+        for (Point p: centroids){
+            double size = p.getLength();
+            if (size < fourth.getLength() && size > maxSize){
+                maxSize = size;
+                fifth = p;
+            }
+        }
+        
+        ArrayList<Point> sortedCentroids = new ArrayList<Point>();
+        sortedCentroids.add(0, largestSFS);
+        sortedCentroids.add(1, secondLargestSFS);
+        sortedCentroids.add(2, third);
+        sortedCentroids.add(3, fourth);
+        sortedCentroids.add(4, fifth);
+        return sortedCentroids;
+    }
+    
+    private ArrayList<Rating> arrangeRMPCentroids(){
+        Rating largestRMP = null;
+        Rating secondLargestRMP = null;
+        Rating third = null;
+        Rating fourth = null;
+        Rating fifth = null;
+        double maxSize =0;
+        ArrayList<Rating> centroids = RMPCentroids;
+        for (Rating r: centroids){
+            double size = r.getLength();
+            if (size > maxSize){
+                maxSize = size;
+                largestRMP = r;
+            }
+        }
+        maxSize =0;
+        for (Rating r: centroids){
+            double size = r.getLength();
+            if( size <largestRMP.getLength() && size > maxSize){
+                maxSize = size;
+                secondLargestRMP = r;
+            }
+        }
+        maxSize =0;
+        for (Rating r: centroids){
+            double size = r.getLength();
+            if( size <secondLargestRMP.getLength() && size > maxSize){
+                maxSize = size;
+                third = r;
+            }
+        }
+        maxSize =0;
+        for (Rating r: centroids){
+            double size = r.getLength();
+            if( size <third.getLength() && size > maxSize){
+                maxSize = size;
+                fourth = r;
+            }
+        }
+        maxSize =0;
+        for (Rating r: centroids){
+            double size = r.getLength();
+            if( size <fourth.getLength() && size > maxSize){
+                maxSize = size;
+                fifth = r;
+            }
+        }
+        
+        ArrayList<Rating> sortedCentroids = new ArrayList<Rating>();
+        sortedCentroids.add(0, largestRMP);
+        sortedCentroids.add(1, secondLargestRMP);
+        sortedCentroids.add(2, third);
+        sortedCentroids.add(3, fourth);
+        sortedCentroids.add(4, fifth);
+        return sortedCentroids;
+    }
+    
+    private double getSFSAverage(ArrayList<Professor> array){
+        double sumA =0;
+        double sumB =0;
+        double sumC =0;
+        double sumD =0;
+        double sumE =0;
+        int size = array.size();
+        for (Professor p: array){
+            sumA += p.getGTM();
+            sumB += p.getCDE();
+            sumC += p.getSP();
+            sumD += p.getWP();
+            sumE += p.getAvailable();
+        }
+        double average = (sumA/size + sumB/size + sumC/size + sumD/size +sumE/size)/5;
+        return average;
+    }
+    
+    private double getRMPAverage(ArrayList<Rating> array){
+        double average =0;
+        double sumQ =0;
+        double sumH =0;
+        double sumC =0;
+        double sumE =0;
+        int size = array.size();
+        
+        for (Rating r: array){
+            sumQ += r.getQuality();
+            sumH += r.getHelpfulness();
+            sumC += r.getClarity();
+            sumE += r.getEasiness();
+        }
+        
+        average = (sumQ/size + sumH/size + sumC/size + sumE/size)/4;
+        return average;
+    }
+    
+    private void compare(){
+        ArrayList<Point> SFSCentroids = arrangeSFSCentroids();
+        ArrayList<Professor> highest = null;
+        ArrayList<Professor> nextHighest = null;
+        ArrayList<Rating> RMPCentroids = arrangeRMPCentroids();
+        ArrayList<Rating> RMPHighest = null;
+        ArrayList<Rating> RMPNextHighest = null;
+        int total =0;
+        int present =0;
+        
+        double first = getSFSAverage(cluster1);
+        if (first == SFSCentroids.get(0).getLength()){
+            highest = cluster1;
+        } else if (first == SFSCentroids.get(1).getLength() ){
+            nextHighest = cluster1;
+        } 
+        double second = getSFSAverage(cluster2);
+        if (second == SFSCentroids.get(0).getLength()){
+            highest = cluster2;
+        } else if (second == SFSCentroids.get(1).getLength() ){
+            nextHighest = cluster2;
+        }
+        double third = getSFSAverage(cluster3);
+        if (third == SFSCentroids.get(0).getLength()){
+            highest = cluster3;
+        } else if (third == SFSCentroids.get(1).getLength() ){
+            nextHighest = cluster3;
+        }
+        double fourth = getSFSAverage(cluster4);
+        if (fourth == SFSCentroids.get(0).getLength()){
+            highest = cluster4;
+        } else if (fourth == SFSCentroids.get(1).getLength() ){
+            nextHighest = cluster4;
+        }
+        double fifth = getSFSAverage(cluster5);
+        if (fifth == SFSCentroids.get(0).getLength()){
+            highest = cluster5;
+        } else if (fifth == SFSCentroids.get(1).getLength() ){
+            nextHighest = cluster5;
+        }
+        
+        double firstRMP = getRMPAverage(RMPCluster1);
+        if (firstRMP == RMPCentroids.get(0).getLength()){
+            RMPHighest = RMPCluster1;
+        } else if (firstRMP == RMPCentroids.get(1).getLength() ){
+            RMPNextHighest = RMPCluster1;
+        }
+        double secondRMP = getRMPAverage(RMPCluster2);
+        if (secondRMP == RMPCentroids.get(0).getLength()){
+            RMPHighest = RMPCluster2;
+        } else if (secondRMP == RMPCentroids.get(1).getLength() ){
+            RMPNextHighest = RMPCluster2;
+        }
+        double thirdRMP = getRMPAverage(RMPCluster3);
+        if (thirdRMP == RMPCentroids.get(0).getLength()){
+            RMPHighest = RMPCluster3;
+        } else if (thirdRMP == RMPCentroids.get(1).getLength() ){
+            RMPNextHighest = RMPCluster3;
+        }
+        double fourthRMP = getRMPAverage(RMPCluster4);
+        if (fourthRMP == RMPCentroids.get(0).getLength()){
+            RMPHighest = RMPCluster4;
+        } else if (fourthRMP == RMPCentroids.get(1).getLength() ){
+            RMPNextHighest = RMPCluster4;
+        }
+        double fifthRMP = getRMPAverage(RMPCluster5);
+        if (fifthRMP == RMPCentroids.get(0).getLength()){
+            RMPHighest = RMPCluster5;
+        } else if (fifthRMP == RMPCentroids.get(1).getLength() ){
+            RMPNextHighest = RMPCluster5;
+        }
+        
+        for (Rating r: RMPHighest){
+            for (Professor p: professors){
+                if (p.isName(r.getName())){
+                    total++;
+                    break;
+                }
+            }
+        }
+        for (Rating r: RMPHighest){
+            for (Professor p: highest){
+                if (p.isName(r.getName())){
+                    present++;
+                    break;
+                }
+            }
+            for (Professor p: nextHighest){
+                if (p.isName(r.getName())){
+                    present++;
+                    break;
+                }
+            }
+        }
+        System.out.println("Of the " + total + " professors in the highest RMP cluster (who are also in the SFS dataset), " + present + " are present in the top two SFS clusters.");
+        
+        int inBoth =0;
+        int count =0;
+        for (Professor p: highest){
+            for (Rating r:ratings){
+                if (p.isName(r.getName())){
+                    inBoth++;
+                    break;
+                }
+            }
+        }
+        for (Professor p: highest){
+            for (Rating r:RMPHighest){
+                if (p.isName(r.getName())){
+                    count++;
+                }
+            }
+            for (Rating r:RMPNextHighest){
+                if (p.isName(r.getName())){
+                    count++;
+                }
+            }
+        }
+        
+        System.out.println("Of the " + inBoth + " professors in the highest SFS cluster (who are also present in the RMP dataset), " + count + " are present in the top two RMP clusters.");
+    }
+    
 }

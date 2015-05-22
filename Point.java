@@ -12,14 +12,12 @@ public class Point
     double c;
     double d;
     double e;
-    double f;
-    public Point(double a, double b, double c, double d, double e, double f){
+    public Point(double a, double b, double c, double d, double e){
         this.a =a;
         this.b = b;
         this.c = c;
         this.e = e;
         this.d = d;
-        this.f = f;
     }
     public double getA(){
         return a;
@@ -36,19 +34,16 @@ public class Point
     public double getE(){
         return e;
     }
-    public double getF(){
-        return f;
-    }
     
     public boolean valueEquals(Point p){
-        if (a == p.getA() && b == p.getB() && c == p.getC() && d == p.getD() && e == p.getE() && f == p.getF()){
+        if (a == p.getA() && b == p.getB() && c == p.getC() && d == p.getD() && e == p.getE() ){
             return true;
         }
         return false;
     }
     
     public double getLength(){
-        return (a+b+c+d+e+f)/6;
+        return (a+b+c+d+e)/5;
     }
     
     public String toString(){
@@ -58,7 +53,6 @@ public class Point
         stringrep += "\nSP is " + c;
         stringrep += "\nWP is " + d;
         stringrep += "\navailable is " + e;
-        stringrep += "\nrecommended is " + f;
         //stringrep += "\nTotal Score is " + (a+b+c+d+e+f);
         return stringrep;
     }

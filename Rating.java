@@ -7,6 +7,7 @@
  */
 public class Rating
 {
+    private String name;
     private double quality;
     private String av_grade;
     private double helpfulness;
@@ -34,8 +35,13 @@ public class Rating
     public double getEasiness(){
         return easiness;
     }
+    public String getName(){
+        return name;
+    }
     
-    
+    public void setName(String name){
+        this.name = name;
+    }
     public void setQuality(double quality){
         this.quality = quality;
     }
@@ -83,5 +89,9 @@ public class Rating
         stringrep += "\nEasiness is " + easiness;
         stringrep += "\nTotal Score is " + (quality + helpfulness + clarity + easiness);
         return stringrep;
+    }
+    
+    public double getLength(){
+        return (quality + helpfulness + clarity + easiness)/4;
     }
 }
