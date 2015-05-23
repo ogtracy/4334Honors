@@ -750,9 +750,16 @@ public class Cluster
         ArrayList<Point> SFSCentroids = arrangeSFSCentroids();
         ArrayList<Professor> highest = null;
         ArrayList<Professor> nextHighest = null;
+        ArrayList<Professor> thirdHighest = null;
+        ArrayList<Professor> fourthHighest = null;
+        ArrayList<Professor> lastHighest = null;
+        
         ArrayList<Rating> RMPCentroids = arrangeRMPCentroids();
         ArrayList<Rating> RMPHighest = null;
         ArrayList<Rating> RMPNextHighest = null;
+        ArrayList<Rating> RMPThirdHighest = null;
+        ArrayList<Rating> RMPFourthHighest = null;
+        ArrayList<Rating> RMPLastHighest = null;
         int total =0;
         int present =0;
         
@@ -761,30 +768,64 @@ public class Cluster
             highest = cluster1;
         } else if (first == SFSCentroids.get(1).getLength() ){
             nextHighest = cluster1;
-        } 
+        } else if (first == SFSCentroids.get(2).getLength()){
+            thirdHighest = cluster1;
+        } else if (first == SFSCentroids.get(3).getLength()){
+            fourthHighest = cluster1;
+        } else {
+            lastHighest = cluster1;
+        }
+        
         double second = getSFSAverage(cluster2);
         if (second == SFSCentroids.get(0).getLength()){
             highest = cluster2;
         } else if (second == SFSCentroids.get(1).getLength() ){
             nextHighest = cluster2;
+        } else if (second == SFSCentroids.get(2).getLength()){
+            thirdHighest = cluster2;
+        } else if (second == SFSCentroids.get(3).getLength()){
+            fourthHighest = cluster2;
+        } else {
+            lastHighest = cluster2;
         }
+        
         double third = getSFSAverage(cluster3);
         if (third == SFSCentroids.get(0).getLength()){
             highest = cluster3;
         } else if (third == SFSCentroids.get(1).getLength() ){
             nextHighest = cluster3;
+        } else if (third == SFSCentroids.get(2).getLength()){
+            thirdHighest = cluster3;
+        } else if (third == SFSCentroids.get(3).getLength()){
+            fourthHighest = cluster3;
+        } else {
+            lastHighest = cluster3;
         }
+        
         double fourth = getSFSAverage(cluster4);
         if (fourth == SFSCentroids.get(0).getLength()){
             highest = cluster4;
         } else if (fourth == SFSCentroids.get(1).getLength() ){
             nextHighest = cluster4;
+        }  else if (fourth == SFSCentroids.get(2).getLength()){
+            thirdHighest = cluster4;
+        } else if (fourth == SFSCentroids.get(3).getLength()){
+            fourthHighest = cluster4;
+        } else {
+            lastHighest = cluster4;
         }
+        
         double fifth = getSFSAverage(cluster5);
         if (fifth == SFSCentroids.get(0).getLength()){
             highest = cluster5;
         } else if (fifth == SFSCentroids.get(1).getLength() ){
             nextHighest = cluster5;
+        }  else if (fifth == SFSCentroids.get(2).getLength()){
+            thirdHighest = cluster5;
+        } else if (fifth == SFSCentroids.get(3).getLength()){
+            fourthHighest = cluster5;
+        } else {
+            lastHighest = cluster5;
         }
         
         double firstRMP = getRMPAverage(RMPCluster1);
@@ -792,30 +833,64 @@ public class Cluster
             RMPHighest = RMPCluster1;
         } else if (firstRMP == RMPCentroids.get(1).getLength() ){
             RMPNextHighest = RMPCluster1;
+        } else if (firstRMP == RMPCentroids.get(2).getLength() ){
+            RMPThirdHighest = RMPCluster1;
+        } else if (firstRMP == RMPCentroids.get(3).getLength() ){
+            RMPFourthHighest = RMPCluster1;
+        } else {
+            RMPLastHighest = RMPCluster1;
         }
+        
         double secondRMP = getRMPAverage(RMPCluster2);
         if (secondRMP == RMPCentroids.get(0).getLength()){
             RMPHighest = RMPCluster2;
         } else if (secondRMP == RMPCentroids.get(1).getLength() ){
             RMPNextHighest = RMPCluster2;
+        } else if (secondRMP == RMPCentroids.get(2).getLength() ){
+            RMPThirdHighest = RMPCluster2;
+        } else if (secondRMP == RMPCentroids.get(3).getLength() ){
+            RMPFourthHighest = RMPCluster2;
+        } else {
+            RMPLastHighest = RMPCluster2;
         }
+        
         double thirdRMP = getRMPAverage(RMPCluster3);
         if (thirdRMP == RMPCentroids.get(0).getLength()){
             RMPHighest = RMPCluster3;
         } else if (thirdRMP == RMPCentroids.get(1).getLength() ){
             RMPNextHighest = RMPCluster3;
+        }  else if (thirdRMP == RMPCentroids.get(2).getLength() ){
+            RMPThirdHighest = RMPCluster3;
+        } else if (thirdRMP == RMPCentroids.get(3).getLength() ){
+            RMPFourthHighest = RMPCluster3;
+        } else {
+            RMPLastHighest = RMPCluster3;
         }
+        
         double fourthRMP = getRMPAverage(RMPCluster4);
         if (fourthRMP == RMPCentroids.get(0).getLength()){
             RMPHighest = RMPCluster4;
         } else if (fourthRMP == RMPCentroids.get(1).getLength() ){
             RMPNextHighest = RMPCluster4;
+        }  else if (fourthRMP == RMPCentroids.get(2).getLength() ){
+            RMPThirdHighest = RMPCluster4;
+        } else if (fourthRMP == RMPCentroids.get(3).getLength() ){
+            RMPFourthHighest = RMPCluster4;
+        } else {
+            RMPLastHighest = RMPCluster4;
         }
+        
         double fifthRMP = getRMPAverage(RMPCluster5);
         if (fifthRMP == RMPCentroids.get(0).getLength()){
             RMPHighest = RMPCluster5;
         } else if (fifthRMP == RMPCentroids.get(1).getLength() ){
             RMPNextHighest = RMPCluster5;
+        }  else if (fifthRMP == RMPCentroids.get(2).getLength() ){
+            RMPThirdHighest = RMPCluster5;
+        } else if (fifthRMP == RMPCentroids.get(3).getLength() ){
+            RMPFourthHighest = RMPCluster5;
+        } else {
+            RMPLastHighest = RMPCluster5;
         }
         
         for (Rating r: RMPHighest){
@@ -866,6 +941,59 @@ public class Cluster
         }
         
         System.out.println("Of the " + inBoth + " professors in the highest SFS cluster (who are also present in the RMP dataset), " + count + " are present in the top two RMP clusters.");
+        
+        
+        total =0;
+        present=0;
+        for (Rating r: RMPLastHighest){
+            for (Professor p: professors){
+                if (p.isName(r.getName())){
+                    total++;
+                    break;
+                }
+            }
+        }
+        for (Rating r: RMPLastHighest){
+            for (Professor p: lastHighest){
+                if (p.isName(r.getName())){
+                    present++;
+                    break;
+                }
+            }
+            for (Professor p: fourthHighest){
+                if (p.isName(r.getName())){
+                    present++;
+                    break;
+                }
+            }
+        }
+        System.out.println("Of the " + total + " professors in the lowest RMP cluster (who are also in the SFS dataset), " + present + " are present in the lowest two SFS clusters.");
+        
+        inBoth =0;
+        count =0;
+        for (Professor p: lastHighest){
+            for (Rating r:ratings){
+                if (p.isName(r.getName())){
+                    inBoth++;
+                    break;
+                }
+            }
+        }
+        
+        for (Professor p: lastHighest){
+            for (Rating r:RMPLastHighest){
+                if (p.isName(r.getName())){
+                    count++;
+                }
+            }
+            for (Rating r:RMPFourthHighest){
+                if (p.isName(r.getName())){
+                    count++;
+                }
+            }
+        }
+        
+        System.out.println("Of the " + inBoth + " professors in the lowest SFS cluster (who are also present in the RMP dataset), " + count + " is/are present in the lowest two RMP clusters.");
     }
     
 }
